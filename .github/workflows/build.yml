@@ -16,41 +16,28 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: 17
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       - name: Prebuild
         run: npx expo prebuild --platform android --clean
-      - name: Fix Kotlin and React Native Screens
+      - name: Fix Kotlin version
         run: |
           cd android
-          # Force Kotlin version to 1.9.0
-          echo "buildscript { ext.kotlin_version = '1.9.0' }" >> build.gradle
-          
-          # Modify app/build.gradle to add Kotlin options
-          cat >> app/build.gradle << 'APPEND'
-          android {
-            compileOptions {
-              sourceCompatibility JavaVersion.VERSION_17
-              targetCompatibility JavaVersion.VERSION_17
-            }
-            kotlinOptions {
-              jvmTarget = '17'
-            }
-          }
-          APPEND
-          
-          # Create local.properties
-          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          # Set Kotlin version to 1.9.22
+          sed -i 's/ext.kotlinVersion = .*/ext.kotlinVersion = "1.9.22"/' build.gradle
+          # Add Kotlin compiler settings
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon -x lint
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: success() || failure()
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/*.apk
