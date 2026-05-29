@@ -26,36 +26,24 @@ jobs:
       - name: Fix build.gradle files
         run: |
           cd android
-          # Show current Kotlin version
-          echo "=== Current build.gradle ==="
-          cat build.gradle | grep -A2 -B2 kotlinVersion
+          # Check if files exist
+          ls -la build.gradle || true
           
-          # Update Kotlin version
-          sed -i 's/ext.kotlinVersion = .*/ext.kotlinVersion = "1.8.0"/' build.gradle || echo "ext.kotlinVersion = '1.8.0'" >> build.gradle
+          # Create backup and fix using echo instead of sed
+          echo "ext.kotlinVersion = '1.9.0'" >> build.gradle
           
-          echo "=== Updated Kotlin version ==="
-          cat build.gradle | grep -A2 -B2 kotlinVersion
-      - name: Build APK with full logging
+          # Create local.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+          
+          # Show what we have
+          cat build.gradle | tail -20
+      - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          # Run with full error details
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee build.log
-          # Show the last 100 lines of error
-          echo "=== Last 100 lines of build log ==="
-          tail -100 build.log
-      - name: Check build output
-        if: always()
-        run: |
-          cd android
-          echo "=== Checking if APK was created ==="
-          find . -name "*.apk" 2>/dev/null || echo "No APK found"
+          ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         if: always()
-        with:
-          name: build-logs
-          path: android/build.log
-      - uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/*.apk
