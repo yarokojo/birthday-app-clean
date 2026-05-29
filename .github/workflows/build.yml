@@ -1,43 +1,19 @@
 name: Build APK
-on: 
-  workflow_dispatch:
-  push:
-    branches: [master, main]
+on: workflow_dispatch
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: reactnativecommunity/react-native-android:latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 17
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-      - name: Prebuild
-        run: npx expo prebuild --platform android --clean
-      - name: Fix Kotlin version
+      - name: Build Android
         run: |
           cd android
-          # Set Kotlin version to 1.9.22
-          sed -i 's/ext.kotlinVersion = .*/ext.kotlinVersion = "1.9.22"/' build.gradle
-          # Add Kotlin compiler settings
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-      - name: Build APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -x lint
+          ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
-        if: success() || failure()
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/*.apk
