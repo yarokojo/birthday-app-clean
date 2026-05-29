@@ -20,21 +20,19 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        run: npm install --legacy-peer-deps
       - name: Prebuild
         run: npx expo prebuild --clean --platform android
       - name: Fix Kotlin version
         run: |
-          # Update Kotlin version in build.gradle
           cd android
+          # Force Kotlin version
           echo "ext.kotlinVersion = '1.9.22'" >> build.gradle
-          # Or manually update if needed
-          sed -i 's/ext.kotlinVersion = .*/ext.kotlinVersion = '\''1.9.22'\''/' build.gradle || true
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
