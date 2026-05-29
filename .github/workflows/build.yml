@@ -19,14 +19,38 @@ jobs:
           java-version: '17'
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-      - name: Install and Build
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+      - name: Prebuild
+        run: npx expo prebuild --platform android --clean
+      - name: Fix Kotlin and React Native Screens
         run: |
-          npm install --legacy-peer-deps
-          npx expo prebuild --platform android --clean
+          cd android
+          # Force Kotlin version to 1.9.0
+          echo "buildscript { ext.kotlin_version = '1.9.0' }" >> build.gradle
+          
+          # Modify app/build.gradle to add Kotlin options
+          cat >> app/build.gradle << 'APPEND'
+          android {
+            compileOptions {
+              sourceCompatibility JavaVersion.VERSION_17
+              targetCompatibility JavaVersion.VERSION_17
+            }
+            kotlinOptions {
+              jvmTarget = '17'
+            }
+          }
+          APPEND
+          
+          # Create local.properties
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Build APK
+        run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: app-debug
           path: android/app/build/outputs/apk/debug/*.apk
